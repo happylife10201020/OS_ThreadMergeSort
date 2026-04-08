@@ -10,9 +10,9 @@ EXECUTABLE = "./mergesort"  # 실행 파일 이름 확인
 TEMP_INPUT = "temp_input.txt" # 테스트용 임시 파일 이름
 
 # N(데이터 개수)과 T(쓰레드 개수) 범위
-N_START, N_END, N_DELTA = 100000, 1000000, 100000
+N_START, N_END, N_DELTA = 1000000, 10000000, 1000000
 T_START, T_END, T_STEP = 1, 16, 1
-ITERATIONS = 5 # 반복 횟
+ITERATIONS = 2 # 반복 횟수 
 
 def generate_random_file(n, filename):
     """n개의 랜덤한 숫자 인풋 파일 생성 ."""
