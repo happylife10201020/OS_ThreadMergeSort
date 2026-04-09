@@ -76,20 +76,34 @@ def run_benchmark_thread(config, btn_run):
         Z = np.zeros(N.shape)
         
         with open(LOG_FILE, 'w') as log:
+            log.write("--- Merge Sort Benchmark Log ---\n")
+            log.write(f"N: {config['n_start']} ~ {config['n_end']}\n")
+            log.write(f"T: {config['t_start']} ~ {config['t_end']}\n\n")
+
             for j, n in enumerate(n_range):
                 generate_random_file(n, TEMP_INPUT)
+                
+                log.write(f"\n[ N = {n} ]\n")
+                print(f"[ N = {n} ]")
+
                 for i, t in enumerate(t_range):
                     total_time = 0.0
                     for _ in range(config['iterations']):
                         total_time += get_execution_time(TEMP_INPUT, t)
-                    Z[i, j] = total_time / config['iterations']
+
+                    avg_time = total_time / config['iterations']
+                    Z[i, j] = avg_time
+
+                    msg = f"Thread {t:2d} | Avg Time = {avg_time:.6f}s"
+                    print(msg)
+                    log.write(msg + "\n")
 
         np.savez(DATA_FILE, N=N, T=T, Z=Z)
 
         if os.path.exists(TEMP_INPUT):
             os.remove(TEMP_INPUT)
 
-        root.after(0, lambda: messagebox.showinfo("완료", "벤치마킹 완료"))
+        root.after(0, lambda: messagebox.showinfo("완료", f"로그 저장됨: {LOG_FILE}"))
 
     except Exception as e:
         root.after(0, lambda: messagebox.showerror("에러", str(e)))
