@@ -38,7 +38,7 @@ gcc -O3 -o mergesort mergesort.c -pthread
 ```
 
 ### 실행 결과
-단일 스레드와 다중 스레드 구동 시의 터미널 실행 결과 화면.
+단일 스레드와 다중 스레드 구동 시의 터미널 실행 결과 화면. 실행결과 1이 0.0002788초로 준수한 정렬속도를 보여줬다.
 
 - 실행 결과 1: ![Execution Result 1](./img/Result_01.jpg)
 - 실행 결과 2: ![Execution Result 2](./img/Result_02.jpg)
