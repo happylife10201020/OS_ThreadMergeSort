@@ -141,17 +141,33 @@ def show_graphs():
         ctx['ax'].clear()
         fig.delaxes(ctx['ax'])
         ctx['ax'] = fig.add_subplot(111, projection='3d')
-        ctx['ax'].plot_surface(N/1000, T, Z, cmap='viridis')
-        ctx['ax'].set_title('3D Performance')
+        plt.subplots_adjust(bottom=0.25)
+
+        N_scaled = N / 1000
+        ctx['ax'].plot_surface(N_scaled, T, Z, cmap='viridis', edgecolor='none', alpha=0.9)
+
+        ctx['ax'].set_xlabel('Number of Elements (K)')
+        ctx['ax'].set_ylabel('Number of Threads (T)')
+        ctx['ax'].set_zlabel('Execution Time (sec)')
+        ctx['ax'].set_title('Merge Sort Performance (3D)')
+
         fig.canvas.draw_idle()
 
     def draw_2d(val=None):
         if ctx['mode'] == '3D':
             return
+
         idx = int(slider_n.val)
+        actual_n = int(n_unique[idx])
+
         ctx['ax'].clear()
-        ctx['ax'].plot(T[:, idx], Z[:, idx])
-        ctx['ax'].set_title(f'N = {n_unique[idx]}')
+        ctx['ax'].plot(T[:, idx], Z[:, idx], marker='o', linewidth=2)
+
+        ctx['ax'].set_xlabel('Number of Threads (T)')
+        ctx['ax'].set_ylabel('Execution Time (sec)')
+        ctx['ax'].set_title(f'Performance (2D Line) - N = {actual_n}')
+        ctx['ax'].grid(True)
+
         fig.canvas.draw_idle()
 
     def toggle_mode(event):
