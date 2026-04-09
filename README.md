@@ -3,14 +3,15 @@
 본 프로젝트는 운영체제 과제 제출용으로 작성된 멀티스레드 기반 병합 정렬(Merge Sort) 프로그램과, 하드웨어별 성능 분석을 위한 파이썬 시각화 도구를 포함하고 있습니다.
 
 ## Assignment 01
-- 과목명: 운영체제 (01분반)
+- 과목명: OS (01분반)
 - 지도교수: 조희승 교수님
 - 학번: 2022041069
 - 이름: 이인수
 
 ## 개발 및 검증 환경
-- 개발 환경: macOS (Apple Silicon M4)
-- 교차 검증 환경: Ubuntu 64-bit (VM)
+- 통합 개발 환경(IDE): Neovim (nvim)
+- 주 개발 환경: macOS (Apple Silicon M4)
+- 교차 검증 환경: Ubuntu 64-bit (가상 머신, 할당 자원: CPU 4 Cores, Memory 12GB)
 - 컴파일러: GCC (Apple clang / gcc)
 
 ---
@@ -25,13 +26,13 @@ gcc -O3 -o mergesort mergesort.c -pthread
 ```
 
 ### 실행
-입력 파일 경로와 생성할 스레드 개수를 인자로 전달합니다.
-```bash
-./mergesort <input_file> <thread_count>
-```
+입력 파일 경로와 생성할 스레드 개수를 인자로 전달합니다. 도움말을 확인하려면 `--help` 옵션을 사용합니다.
 
-실행 예시:
 ```bash
+# 도움말 출력
+./mergesort --help
+
+# 실행 예시 (input.txt 데이터를 8개의 스레드로 정렬)
 ./mergesort input.txt 8
 ```
 
@@ -72,13 +73,13 @@ python benchmark_app.py
 하드웨어 아키텍처에 따른 스레드 할당 효율성 및 암달의 법칙(Amdahl's Law) 적용 양상을 교차 테스트한 결과입니다.
 
 ### 1. macOS (Apple Silicon M4)
-P-core가 다수 존재하는 M4 칩의 특성상 일정 스레드(약 8개)까지는 유의미한 성능 향상(Speedup)이 관찰됩니다. 그 이상 스레드를 할당할 경우, 병렬화되지 않는 최종 병합(Final Merge) 구간의 병목과 컨텍스트 스위칭 오버헤드로 인해 성능이 하락하는 양상을 보입니다.
+P-core가 다수 존재하는 M4 칩의 특성상 일정 스레드(약 8개)까지는 유의미한 성능 향상(Speedup)이 관찰됩니다. 그 이상 스레드를 할당할 경우, 병렬화되지 않는 최종 병합(Final Merge) 구간의 병목과 컨텍스트 스위칭 오버헤드로 인해 성능이 하락하는 양상을 보입니다. 또한, 스레드 개수를 99개까지 극단적으로 늘리더라도 I/O 병목 및 순차 처리 구간의 한계로 인해 전체 CPU 점유율은 일정 수준(약 40% 미만)에서 크게 증가하지 않는 현상이 관찰되었습니다.
 
 - 3D 성능 그래프: ![macOS 3D Graph](./img/3D_Mac01.jpg)
 - N의 개수별 2D 성능 그래프: ![macOS Execution](./gif/2D_Mac.gif)
 
 ### 2. Linux (Ubuntu VM)
-물리 코어가 제한적으로 할당된 가상 머신 환경의 특성상, 스레드가 2개를 초과하여 증가할 때 병렬 처리로 얻는 연산 이득보다 스레드 생성 및 컨텍스트 스위칭 비용, 자원 경합(Resource Contention)이 더 크게 발생하여 성능이 점진적으로 저하되는 경향을 보입니다.
+물리 코어가 4개로 제한 할당된 가상 머신 환경의 특성상, 스레드가 가용 코어 수를 초과하여 증가할 때 병렬 처리로 얻는 연산 이득보다 스레드 생성 및 컨텍스트 스위칭 비용, 자원 경합(Resource Contention)이 더 크게 발생하여 성능이 점진적으로 저하되는 경향을 보입니다.
 
 - 3D 성능 그래프: ![Linux 3D Graph](./img/3D_Linux.png)
 - N의 개수별 2D 성능 그래프: ![Linux Execution](./gif/2D_Linux.gif)
