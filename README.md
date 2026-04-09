@@ -74,7 +74,7 @@ python benchmark_app.py
 ### 1. macOS (Apple Silicon M4)
 P-core가 다수 존재하는 M4 칩의 특성상 일정 스레드(약 8개)까지는 유의미한 성능 향상(Speedup)이 관찰됩니다. 그 이상 스레드를 할당할 경우, 병렬화되지 않는 최종 병합(Final Merge) 구간의 병목과 컨텍스트 스위칭 오버헤드로 인해 성능이 하락하는 양상을 보입니다.
 
-- 3D 성능 그래프: ![macOS 3D Graph](./img/3D_Mac01.png)
+- 3D 성능 그래프: ![macOS 3D Graph](./img/3D_Mac01.jpg)
 - 구동 화면 기록: ![macOS Execution](./gif/2D_Mac.gif)
 
 ### 2. Linux (Ubuntu VM)
