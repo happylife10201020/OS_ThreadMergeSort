@@ -75,10 +75,10 @@ python benchmark_app.py
 P-core가 다수 존재하는 M4 칩의 특성상 일정 스레드(약 8개)까지는 유의미한 성능 향상(Speedup)이 관찰됩니다. 그 이상 스레드를 할당할 경우, 병렬화되지 않는 최종 병합(Final Merge) 구간의 병목과 컨텍스트 스위칭 오버헤드로 인해 성능이 하락하는 양상을 보입니다.
 
 - 3D 성능 그래프: ![macOS 3D Graph](./img/3D_Mac01.jpg)
-- 구동 화면 기록: ![macOS Execution](./gif/2D_Mac.gif)
+- N의 개수별 2D 성능 그래프: ![macOS Execution](./gif/2D_Mac.gif)
 
 ### 2. Linux (Ubuntu VM)
 물리 코어가 제한적으로 할당된 가상 머신 환경의 특성상, 스레드가 2개를 초과하여 증가할 때 병렬 처리로 얻는 연산 이득보다 스레드 생성 및 컨텍스트 스위칭 비용, 자원 경합(Resource Contention)이 더 크게 발생하여 성능이 점진적으로 저하되는 경향을 보입니다.
 
 - 3D 성능 그래프: ![Linux 3D Graph](./img/3D_Linux.png)
-- 구동 화면 기록: ![Linux Execution](./gif/2D_Linux.gif)
+- N의 개수별 2D 성능 그래프: ![Linux Execution](./gif/2D_Linux.gif)
