@@ -2,3 +2,5 @@ mergesort
 temp_input.txt
 .DS_Store
 null
+output.txt
+benchmark_data.npz
