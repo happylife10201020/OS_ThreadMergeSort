@@ -30,6 +30,7 @@
 #include<fcntl.h>
 #include<sys/mman.h>
 #include<sys/stat.h>
+#include<stdbool.h>
 
 #define THRESHOLD 32 //32개 이하 삽입정
 
@@ -128,12 +129,19 @@ int main(int argc, char* argv[]) {
 	
     int N = atoi(argv[2]) ;
     int fd = open(argv[1], O_RDONLY) ;
-    if(fd < 0) {perror("Failed to open file\n"); return 1 ;}
+
+    if(fd < 0) {
+        perror("Failed to open file\n");
+        return 1 ;
+    }
     
     struct stat sb ;
     fstat(fd, &sb) ;
     char* file_addr = mmap(NULL, sb.st_size, PROT_READ, MAP_PRIVATE, fd, 0) ;
-    if(file_addr == MAP_FAILED) {perror("mmap failed") ;return 1 ;}
+    if(file_addr == MAP_FAILED) {
+        perror("mmap failed") ;
+        return 1 ;
+    }
 
     // 숫자 개수 파악
     int* arr= malloc(sizeof(int) * (sb.st_size / 2)) ;
@@ -142,19 +150,42 @@ int main(int argc, char* argv[]) {
     char* end_p = file_addr + sb.st_size ;
 
     //문자로 파
+    bool error_flag = 0 ;
+
     while( p< end_p) {
-	if((*p >= '0' && *p <= '9') || *p == '-') {
-		int sign = 1 ;
-		if(*p == '-') {sign = -1; p++; }
-		int num = 0 ;
-		while(p < end_p && *p >= '0' && *p <= '9') {
-			num = num * 10 + (*p - '0') ;
-			p++ ;
-		}
-		arr[count++] = num * sign;
-	} else {
-		p++ ;
-	}
+        if(*p == ' ' || *p == '\n' || *p == '\t') {
+            p++ ;
+            continue ;
+        }
+    	if((*p >= '0' && *p <= '9') || *p == '-') {
+	    	int sign = 1 ;
+	    	if(*p == '-') {
+                sign = -1; 
+                p++; 
+
+                if(!(p < end_p && *p >= '0' && *p <= '9')) {
+                    error_flag = 1 ;
+                    break ;
+                }
+            }
+	    	int num = 0 ;
+	    	while(p < end_p && *p >= '0' && *p <= '9') {
+	    		num = num * 10 + (*p - '0') ;
+	    		p++ ;
+	    	}
+	    	arr[count++] = num * sign;
+    	} else {
+	        error_flag = 1 ;
+            break ;
+        }
+    }
+
+    if(error_flag) {
+        fprintf(stderr, "Error: input file contains invalid character\n") ;
+        munmap(file_addr, sb.st_size) ;
+        close(fd) ;
+        free(arr) ;
+        return 1 ;
     }
 
     munmap(file_addr, sb.st_size) ;
@@ -178,7 +209,7 @@ int main(int argc, char* argv[]) {
 
     for(int i = 0; i<N; i++) {
         tdata[i].arr = arr ;
-	tdata[i].temp = global_temp ;
+    	tdata[i].temp = global_temp ;
         tdata[i].left = i * chunk ;
 
         if(i == N - 1) 
@@ -188,7 +219,7 @@ int main(int argc, char* argv[]) {
         
         //int size = tdata[i].right - tdata[i].left + 1 ;
         //tdata[i].temp = malloc(sizeof(int) * size) ;
-	pthread_create(&threads[i], NULL, threadMergeSort, &tdata[i]) ;
+    	pthread_create(&threads[i], NULL, threadMergeSort, &tdata[i]) ;
     }
     
     //================================= join
