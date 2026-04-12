@@ -99,7 +99,7 @@ int main(int argc, char* argv[]) {
 
     //================================= 입력값 검증 
     if(argc != 3){
-        if(argc == 2 && strcmp(argv[1], "--help") == 0){ // --help 구
+        if(argc == 2 && strcmp(argv[1], "--help") == 0){ // --help 구현 
             printf(
                     "\tUsage: %s <file> <N>\n"
                     "\t <file> : path to input file containing natural integers\n"
@@ -123,7 +123,7 @@ int main(int argc, char* argv[]) {
     }
 
 
-    //================================= open files현
+    //================================= open files
     /*char* fileName = argv[1];
     int N = atoi(argv[2]);
 
@@ -186,7 +186,7 @@ int main(int argc, char* argv[]) {
     char* p = file_addr ;
     char* end_p = file_addr + sb.st_size ;
 
-    //문자로 파
+    //문자로 파싱 
     bool error_flag = 0 ;
 
     while( p< end_p) {
