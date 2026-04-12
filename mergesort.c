@@ -32,21 +32,58 @@
 #include<sys/stat.h>
 #include<stdbool.h>
 
-#define THRESHOLD 32 //32개 이하 삽입정
+#define THRESHOLD 32 //32개 이하 삽입정렬 
+#define MAX_TASKS 65536
+#define PARALLEL_MERGE_THRESHOLD 100000 //이 크기 이하 구간은 순차 
 
-typedef struct{
+//스레드 정렬을 위한 구조체 
+typedef struct{ 
     int* arr ;
     int* temp ;
     int left ;
     int right ;
 }ThreadData ;
 
+//스레드 병합을 위한 구조체(작업 큐의 노드)
+typedef struct{
+    int left, mid, right ;
+    // struct MergeTask* next ;
+}MergeTask ;
+
+//thread pool
+typedef struct {
+    pthread_t*      threads ;
+    MergeTask*      tasks ;
+    int             head ;
+    int             tail ;
+    int             task_count ;
+    int             active ;
+    // MergeTask*      queue_head ;
+    // MergeTask*      queue_tail ;
+    pthread_mutex_t mutex ;
+    pthread_cond_t cond_task ; // 작업 생겼을 때 깨움 
+    pthread_cond_t cond_done ; // 작업 다 끝났을 때 메인에 확인
+    // int             active_tasks ; // 현재 진행 중인 작업 수 
+    int             num_threads ;
+    int             shutdown ;
+    int*            arr ;
+    int*            temp ;
+} ThreadPool ;
+
+
+
+
 void merge(int*, int, int, int, int*) ;
 void mergeSort(int*, int, int, int*) ;
 void* threadMergeSort(void* ) ; 
 void insertionSort(int[], int, int) ;
 
-void* fast_itoa(int, char*) ;
+void* fast_itoa(int, char*) ; // int -> string
+                              
+
+void* worker(void*) ; // 스레드 병합 병렬 
+
+
 
 
 /**
@@ -230,9 +267,35 @@ int main(int argc, char* argv[]) {
 
     
     //================================= final merge
+    
+    //merge도 병렬로 
+    ThreadPool pool ;
+    pool.arr            = arr ;
+    pool.temp           = global_temp ;
+    pool.num_threads    = N ;
+    pool.shutdown       = 0 ;
+    //pool.active_tasks   = 0 ;
+    //pool.queue_head     = NULL ;
+    //pool.queue_tail     = NULL ;
+    pool.active         = 0 ;
+    pool.task_count     = 0 ;
+    pool.head           = 0 ;
+    pool.tail           = 0 ;
+    pool.tasks          = malloc(sizeof(MergeTask) * MAX_TASKS) ;
+
+    pthread_mutex_init(&pool.mutex, NULL) ;
+    pthread_cond_init(&pool.cond_task, NULL) ;
+    pthread_cond_init(&pool.cond_done, NULL) ;
+
+    //make worker thread
+    pool.threads = malloc(sizeof(pthread_t) * N) ;
+    for(int i = 0; i < N; i++)
+         pthread_create(&pool.threads[i], NULL, worker, &pool) ;
+
+
     int step = chunk ;
     while(step < count) {
-        for(int i = 0; i<count; i+= 2* step) {
+        /*for(int i = 0; i<count; i+= 2* step) {
             // int left = i ;
             int mid = i + step - 1 ;
             int right = i + 2 * step - 1 ;
@@ -240,8 +303,74 @@ int main(int argc, char* argv[]) {
             if(right >= count) right = count - 1 ;
             merge(arr, i, mid, right, global_temp) ;
         }
+        step *= 2 ;*/
+        
+        // 작으면 순차 처리
+        if(step * 2 <= PARALLEL_MERGE_THRESHOLD) {
+            for(int i = 0; i<count; i+= 2* step) {
+                // int left = i ;
+                int mid = i + step - 1 ;
+                int right = i + 2 * step - 1 ;
+                if(mid >= count) continue ;
+                if(right >= count) right = count - 1 ;
+                merge(arr, i, mid, right, global_temp) ;
+            }
+            step *= 2 ;
+            continue ;
+        }
+
+        
+        pthread_mutex_lock(&pool.mutex) ;
+        for(int i = 0 ; i < count ; i += 2 * step ) {
+            int mid = i + step - 1 ;
+            int right = i + 2 * step - 1 ;
+            if(mid >= count) continue ;
+            if(right >= count) right = count - 1 ;
+
+            //MergeTask* task = malloc(sizeof(MergeTask)) ;
+            //task->left = i ;
+            //task->mid = mid ;
+            //task->right = right ;
+            //task->next = NULL ;
+
+            //add to queue
+            /*
+            if(pool.queue_tail) 
+                pool.queue_tail->next = task ;
+            else 
+                pool.queue_head = task ;
+            pool.queue_tail = task ;
+            pool.active_tasks++ ;
+            */
+            pool.tasks[pool.tail % MAX_TASKS] = (MergeTask){i, mid, right} ;
+            pool.tail++ ;
+            pool.task_count++ ;
+        }
+
+        pthread_cond_broadcast(&pool.cond_task) ; //워커 깨우기
+        while(pool.active > 0 || pool.task_count > 0) 
+            pthread_cond_wait(&pool.cond_done, &pool.mutex) ;
+        pthread_mutex_unlock(&pool.mutex) ;
+
         step *= 2 ;
     }
+
+    // 스레드 풀 종료
+    pthread_mutex_lock(&pool.mutex) ;
+    pool.shutdown = 1 ;
+    pthread_cond_broadcast(&pool.cond_task) ; // 자고 있는 워커 깨워서 종료
+    pthread_mutex_unlock(&pool.mutex) ;
+
+    for(int i = 0 ; i < N; i++ ) 
+        pthread_join(pool.threads[i], NULL) ;
+
+    free(pool.tasks) ;
+    free(pool.threads) ;
+    pthread_mutex_destroy(&pool.mutex) ;
+    pthread_cond_destroy(&pool.cond_task) ;
+    pthread_cond_destroy(&pool.cond_done) ;
+
+
     //================================= output
     /*
     printf("%d", arr[0]) ;
@@ -371,4 +500,46 @@ void* fast_itoa(int val, char* buf) {
         *buf++ = temp[--i];
     }
     return buf;
+}
+
+
+void* worker(void* arg) {
+    ThreadPool* pool = (ThreadPool*) arg ;
+    while(1) {
+        pthread_mutex_lock(&pool->mutex) ;
+        //작업 없으면 대기
+        while(pool->task_count == 0 && !pool->shutdown)
+            pthread_cond_wait(&pool->cond_task, &pool->mutex) ;
+
+        if(pool->shutdown && pool->task_count == 0) {
+            pthread_mutex_unlock(&pool->mutex) ;
+            return NULL ;
+        }
+        //작업 꺼내기
+        /*
+        MergeTask* task = pool->queue_head ;
+        pool->queue_head = task->next ;
+        if(!pool->queue_head)
+            pool->queue_tail = NULL ;
+        pthread_mutex_unlock(&pool->mutex) ;
+        */
+        MergeTask task = pool->tasks[pool->head % MAX_TASKS] ;
+        pool->head++ ;
+        pool->task_count-- ;
+        pool->active++ ;
+        pthread_mutex_unlock(&pool->mutex) ;
+
+        //mrege
+        
+        merge(pool->arr, task.left, task.mid, task.right, pool->temp) ;
+        // free(task) ;
+        
+
+        //완료 알림
+        pthread_mutex_lock(&pool->mutex) ;
+        pool->active-- ;
+        if(pool->active == 0 && pool->task_count == 0) 
+            pthread_cond_signal(&pool->cond_done) ;
+        pthread_mutex_unlock(&pool->mutex) ;
+    }
 }
