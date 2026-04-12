@@ -82,11 +82,23 @@ cat null
 - 실행 결과 2(17Thread $508 &micro;s$): ![Execution Result 2](./img/Result_02.jpg)
 - 실행 결과 3(65Thread $1276 &micro;s$): ![Execution Result 3](./img/Result_03.jpg)
 
+
+다음은 스레드별 100회 실행결과 평균 그래프이다.
+![Ececution Result 4](.img/1000.jpg)
+![Ececution Result 5](.img/1000-2.jpg)
+
+```
+스레드가 1개일 때보다 2개일 떄 더 빠른 결과를 보이지만, 눈에띄게 보이지는 않는다.
+해당 그래프를 만들기 위한 프로그램은 터미널 오버헤드를 발생시키지 않으므로 훨신 빠른 시간 내에 실행된다.
+```
+
+
 ---
 
 ## Graph generator
 
-GUI 환경에서 데이터 크기와 스레드 개수를 조절하며 성능을 측정할 수 있는 벤치마킹 앱. 
+GUI 환경에서 데이터 크기와 스레드 개수를 조절하며 성능을 측정할 수 있는 벤치마킹 앱.
+멀티스레드 프로그램의 효율을 보기 위해 10만개 이상의 input을 넣었을 떄 테스트하기 위해 만들었다.
 
 ### 1. 사전 요구 사항 (Tkinter)
 GUI 출력을 위해 파이썬 내장 라이브러리인 Tkinter가 시스템에 설치되어 있어야 한다.
