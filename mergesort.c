@@ -31,6 +31,8 @@
 #include<sys/mman.h>
 #include<sys/stat.h>
 
+#define THRESHOLD 32 //32개 이하 삽입정
+
 typedef struct{
     int* arr ;
     int* temp ;
@@ -41,6 +43,7 @@ typedef struct{
 void merge(int*, int, int, int, int*) ;
 void mergeSort(int*, int, int, int*) ;
 void* threadMergeSort(void* ) ; 
+void insertionSort(int[], int, int) ;
 
 void* fast_itoa(int, char*) ;
 
@@ -281,7 +284,12 @@ void merge(int* arr, int left, int mid, int right, int* temp) {
  * @return 	void
  */
 void mergeSort(int* arr, int left, int right, int* temp) {
-    if(left >= right) return ;
+    // if(left >= right) return ;
+    
+    if(right - left + 1 <= THRESHOLD) {
+        insertionSort(arr, left, right) ;
+        return ;
+    }
     int mid = (left + right) / 2 ;
 
     mergeSort(arr, left, mid, temp) ;
@@ -293,6 +301,18 @@ void* threadMergeSort(void* args) {
     ThreadData* data = (ThreadData*)args ;
     mergeSort(data->arr, data->left, data->right, data->temp) ;
     return NULL ;
+}
+
+void insertionSort(int arr[], int left, int right) {
+    for(int i = left + 1; i<= right; i++) {
+        int key = arr[i] ;
+        int j= i - 1 ;
+        while(j >= left && arr[j] > key) {
+            arr[j + 1] = arr[j] ;
+            j-- ;
+        }   
+        arr[j + 1] = key ;
+    }
 }
 
 /**
