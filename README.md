@@ -78,9 +78,9 @@ cat null
 ### 실행 결과
 단일 스레드와 다중 스레드 구동 시의 터미널 실행 결과 화면. 실행결과 1이 278마이크로초로 가장 준수한 정렬속도를 보여줬다.
 
-- 실행 결과 1: ![Execution Result 1](./img/Result_01.jpg)
-- 실행 결과 2: ![Execution Result 2](./img/Result_02.jpg)
-- 실행 결과 3: ![Execution Result 3](./img/Result_03.jpg)
+- 실행 결과 1(8Thread $278 &micro;s$): ![Execution Result 1](./img/Result_01.jpg)
+- 실행 결과 2(17Thread $508 &micro;s$): ![Execution Result 2](./img/Result_02.jpg)
+- 실행 결과 3(65Thread $1276 &micro;s$): ![Execution Result 3](./img/Result_03.jpg)
 
 ---
 
