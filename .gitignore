@@ -1,6 +1,7 @@
 mergesort
 temp_input.txt
 .DS_Store
-null
+null*
 output.txt
 benchmark_data.npz
+gen*
