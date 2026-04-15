@@ -47,7 +47,6 @@ typedef struct {
 // 스레드 병합을 위한 구조체(작업 큐의 노드)
 typedef struct {
   int left, mid, right;
-  // struct MergeTask* next ;
 } MergeTask;
 
 // thread pool
@@ -58,12 +57,9 @@ typedef struct {
   int tail;
   int task_count;
   int active;
-  // MergeTask*      queue_head ;
-  // MergeTask*      queue_tail ;
   pthread_mutex_t mutex;
   pthread_cond_t cond_task; // 작업 생겼을 때 깨움
   pthread_cond_t cond_done; // 작업 다 끝났을 때 메인에 확인
-  // int             active_tasks ; // 현재 진행 중인 작업 수
   int num_threads;
   int shutdown;
   int *arr;
@@ -75,7 +71,7 @@ void mergeSort(int *, int, int, int *);
 void *threadMergeSort(void *);
 void insertionSort(int[], int, int);
 
-void *fast_itoa(int, char *); // int -> string
+char *fast_itoa(int, char *); // int -> string
 
 void *worker(void *); // 스레드 병합 병렬
 
@@ -97,6 +93,7 @@ int main(int argc, char *argv[]) {
              "\t <N> : number of threads\n"
              "\n\tExample: %s input.txt 4\n",
              argv[0], argv[0]);
+      return 0;
     } else {
       fprintf(stderr,
               "\tUsage Error: %s <file> <N> \n"
@@ -111,51 +108,13 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  //================================= open files
-  /*char* fileName = argv[1];
-  int N = atoi(argv[2]);
-
-  FILE *fp ;
-  fp = fopen(fileName, "r") ;
-
-  if(fp == NULL) {
-      fprintf(stderr, "Failed to open file %s\n", fileName) ;
-      return 1 ;
-  }
-  if(N == 0) {
-      fprintf(stderr, "N cannot be 0\n") ;
-      return 싱1 ;
-  }
-
-  //================================= 배열 만들기
-  int capacity = 10 ;
-  int* arr = malloc(sizeof(int) * capacity) ;
-  int count = 0 ;
-  char* line = NULL ;
-  size_t len = 0 ;
-
-  while(getline(&line, &len, fp) != -1) {
-      char* ptr = line ;
-      char* end ;
-      while(1) {
-          long num = strtol(ptr, &end, 10) ;
-          if(ptr == end) break ;
-          if(count == capacity) {
-              capacity *= 2 ;
-              arr = realloc(arr, capacity *sizeof(int)) ;
-          }
-          arr[count++] = (int)num ;
-          ptr = end ;
-      }
-  }*/
-
   //================================= mmap 사용한 고속 입출력
 
   int N = atoi(argv[2]);
   int fd = open(argv[1], O_RDONLY);
 
   if (fd < 0) {
-    perror("Failed to open file\n");
+    perror("Failed to open file");
     return 1;
   }
 
@@ -225,8 +184,8 @@ int main(int argc, char *argv[]) {
   if (N > count)
     N = count; // N 이 count보다 클 때
   int chunk = count / N;
-  pthread_t threads[N];
-  ThreadData tdata[N];
+  pthread_t *threads = malloc(sizeof(pthread_t) * N);
+  ThreadData *tdata = malloc(sizeof(ThreadData) * N);
 
   int *global_temp = malloc(sizeof(int) * count); // 전체 공유 버퍼
 
@@ -240,16 +199,15 @@ int main(int argc, char *argv[]) {
     else
       tdata[i].right = (i + 1) * chunk - 1;
 
-    // int size = tdata[i].right - tdata[i].left + 1 ;
-    // tdata[i].temp = malloc(sizeof(int) * size) ;
     pthread_create(&threads[i], NULL, threadMergeSort, &tdata[i]);
   }
 
   //================================= join
-  for (int i = 0; i < N; i++) {
+  for (int i = 0; i < N; i++)
     pthread_join(threads[i], NULL);
-    // free(tdata[i].temp) ; // 정렬 이후 전부 free
-  }
+
+  free(threads);
+  free(tdata);
 
   //================================= final merge
 
@@ -259,9 +217,6 @@ int main(int argc, char *argv[]) {
   pool.temp = global_temp;
   pool.num_threads = N;
   pool.shutdown = 0;
-  // pool.active_tasks   = 0 ;
-  // pool.queue_head     = NULL ;
-  // pool.queue_tail     = NULL ;
   pool.active = 0;
   pool.task_count = 0;
   pool.head = 0;
@@ -279,20 +234,9 @@ int main(int argc, char *argv[]) {
 
   int step = chunk;
   while (step < count) {
-    /*for(int i = 0; i<count; i+= 2* step) {
-        // int left = i ;
-        int mid = i + step - 1 ;
-        int right = i + 2 * step - 1 ;
-        if(mid >= count) continue ;
-        if(right >= count) right = count - 1 ;
-        merge(arr, i, mid, right, global_temp) ;
-    }
-    step *= 2 ;*/
-
     // 작으면 순차 처리
-    if (step * 2 <= PARALLEL_MERGE_THRESHOLD) {
+    if (step <= PARALLEL_MERGE_THRESHOLD / 2) {
       for (int i = 0; i < count; i += 2 * step) {
-        // int left = i ;
         int mid = i + step - 1;
         int right = i + 2 * step - 1;
         if (mid >= count)
@@ -314,21 +258,6 @@ int main(int argc, char *argv[]) {
       if (right >= count)
         right = count - 1;
 
-      // MergeTask* task = malloc(sizeof(MergeTask)) ;
-      // task->left = i ;
-      // task->mid = mid ;
-      // task->right = right ;
-      // task->next = NULL ;
-
-      // add to queue
-      /*
-      if(pool.queue_tail)
-          pool.queue_tail->next = task ;
-      else
-          pool.queue_head = task ;
-      pool.queue_tail = task ;
-      pool.active_tasks++ ;
-      */
       pool.tasks[pool.tail % MAX_TASKS] = (MergeTask){i, mid, right};
       pool.tail++;
       pool.task_count++;
@@ -358,13 +287,6 @@ int main(int argc, char *argv[]) {
   pthread_cond_destroy(&pool.cond_done);
 
   //================================= output
-  /*
-  printf("%d", arr[0]) ;
-  for(int i = 1; i < count; i++) {
-      printf(" %d", arr[i]) ;
-  }
-  printf("\n") ;
-  */
 
   // buffered write
 
@@ -377,19 +299,15 @@ int main(int argc, char *argv[]) {
   fwrite(out_buf, 1, out_p - out_buf, stdout);
 
   //================================= free and print time
-  // free(arr) ;
-  // free(line) ;
-  // fclose(fp) ;
   free(global_temp);
   free(out_buf);
-  // free(temp) ;
   free(arr);
 
   gettimeofday(&endTime, NULL);
   long long diff = (endTime.tv_sec - startTime.tv_sec) * 1000000LL +
                    (endTime.tv_usec - startTime.tv_usec);
 
-  printf("Cost Time: %lld micro seconds\n", diff); // 최종 소요시간 출력
+  fprintf(stderr, "Cost Time: %lld micro seconds\n", diff); // 최종 소요시간 출력
 
   return 0;
 }
@@ -432,8 +350,6 @@ void merge(int *arr, int left, int mid, int right, int *temp) {
  * @return 	void
  */
 void mergeSort(int *arr, int left, int right, int *temp) {
-  // if(left >= right) return ;
-
   if (right - left + 1 <= THRESHOLD) {
     insertionSort(arr, left, right);
     return;
@@ -469,7 +385,7 @@ void insertionSort(int arr[], int left, int right) {
  * @param	buf	문자열이 저장될 버퍼의 현재 위치 포인터
  * @return void*	다음 숫자가 써질 버퍼의 위치 포인터 변환
  */
-void *fast_itoa(int val, char *buf) {
+char *fast_itoa(int val, char *buf) {
   if (val == 0) {
     *buf++ = '0';
     return buf;
@@ -506,23 +422,15 @@ void *worker(void *arg) {
       return NULL;
     }
     // 작업 꺼내기
-    /*
-    MergeTask* task = pool->queue_head ;
-    pool->queue_head = task->next ;
-    if(!pool->queue_head)
-        pool->queue_tail = NULL ;
-    pthread_mutex_unlock(&pool->mutex) ;
-    */
     MergeTask task = pool->tasks[pool->head % MAX_TASKS];
     pool->head++;
     pool->task_count--;
     pool->active++;
     pthread_mutex_unlock(&pool->mutex);
 
-    // mrege
+    // merge
 
     merge(pool->arr, task.left, task.mid, task.right, pool->temp);
-    // free(task) ;
 
     // 완료 알림
     pthread_mutex_lock(&pool->mutex);
